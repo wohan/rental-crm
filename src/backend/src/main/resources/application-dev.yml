@@ -1,0 +1,6 @@
+logging:
+  level:
+    ru.rentalcrm: DEBUG
+spring:
+  jpa:
+    show-sql: false

@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: rental-crm
+  profiles:
+    default: dev
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/rentalcrm}
+    username: ${SPRING_DATASOURCE_USERNAME:rentalcrm}
+    password: ${SPRING_DATASOURCE_PASSWORD:rentalcrm}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+server:
+  port: ${SERVER_PORT:8080}
+app:
+  cors-origins: ${APP_CORS_ORIGINS:http://localhost:15173,http://localhost:5173,http://localhost:3000}
+  notification-dry-run: ${APP_NOTIFICATION_DRY_RUN:true}

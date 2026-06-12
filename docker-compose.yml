@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: rentalcrm
+      POSTGRES_USER: rentalcrm
+      POSTGRES_PASSWORD: rentalcrm
+    volumes:
+      - rentalcrm_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rentalcrm -d rentalcrm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./src/backend
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/rentalcrm
+      SPRING_DATASOURCE_USERNAME: rentalcrm
+      SPRING_DATASOURCE_PASSWORD: rentalcrm
+      APP_CORS_ORIGINS: http://localhost:15173,http://localhost:5173,http://frontend:5173
+    ports:
+      - "18080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./src/frontend
+    environment:
+      VITE_API_URL: http://localhost:18080/api
+    ports:
+      - "15173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  rentalcrm_db:
