@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+*.backup*
+target/
+dist/
+node_modules/
+backend/target/
+frontend/dist/
+frontend/node_modules/
+frontend/playwright-report/
+frontend/test-results/
+.DS_Store
+**/.DS_Store
+.idea/

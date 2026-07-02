@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# Add the production sitemap after the public domain is selected.
+# Example:
+# Sitemap: https://rentcrm.ru/sitemap.xml

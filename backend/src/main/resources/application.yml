@@ -1,0 +1,59 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/rentcrm}
+    username: ${SPRING_DATASOURCE_USERNAME:rentcrm}
+    password: ${SPRING_DATASOURCE_PASSWORD:rentcrm}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: ${APP_DOCUMENT_MAX_FILE_SIZE:30MB}
+      max-request-size: ${APP_DOCUMENT_MAX_REQUEST_SIZE:31MB}
+  mail:
+    host: ${SPRING_MAIL_HOST:}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SPRING_MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${SPRING_MAIL_SMTP_STARTTLS:true}
+server:
+  port: 8080
+management:
+  health:
+    mail:
+      enabled: ${MANAGEMENT_HEALTH_MAIL_ENABLED:false}
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+app:
+  jwt-secret: ${APP_JWT_SECRET:change-this-secret-change-this-secret}
+  cors-origins: ${APP_CORS_ORIGINS:http://localhost:5173,http://localhost}
+  mail:
+    from: ${APP_MAIL_FROM:noreply@rentcrm.local}
+  auth:
+    public-base-url: ${APP_AUTH_PUBLIC_BASE_URL:}
+    dev-links-enabled: ${APP_AUTH_DEV_LINKS_ENABLED:false}
+  billing:
+    webhook-secret: ${APP_BILLING_WEBHOOK_SECRET:}
+  errors:
+    alert-email: ${APP_ERROR_ALERT_EMAIL:}
+  documents:
+    storage-dir: ${APP_DOCUMENT_STORAGE_DIR:/app/uploads/documents}
+logging:
+  level:
+    ru.rentcrm.app.service: ${APP_SERVICE_LOG_LEVEL:INFO}
+    ru.rentcrm.app.service.BillingService: ${APP_BILLING_LOG_LEVEL:INFO}
+    ru.rentcrm.app.service.NotificationService: ${APP_NOTIFICATION_LOG_LEVEL:INFO}
