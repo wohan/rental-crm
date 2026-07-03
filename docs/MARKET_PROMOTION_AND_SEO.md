@@ -11,7 +11,7 @@ RentCRM можно продвигать на рынке РФ, но текущи�
 1. Добавлены базовые SEO meta tags в `frontend/index.html`.
 2. Добавлены Open Graph/Twitter meta tags.
 3. Добавлена JSON-LD разметка `SoftwareApplication`.
-4. Уточнен title: `RentCRM — CRM для арендодателей 5-50 объектов`.
+4. Уточнен title: `RentCRM — CRM для арендодателей`.
 5. Добавлен `frontend/public/robots.txt` с разрешением индексации.
 
 Главная проблема: React SPA с контентом, который появляется после JavaScript, хуже подходит для SEO, чем SSR/static marketing pages. Личный кабинет за логином не должен быть основной SEO-точкой входа.
@@ -218,7 +218,7 @@ P2:
 
 H1:
 
-> RentCRM — CRM для арендодателей 5-50 объектов
+> RentCRM — CRM для арендодателей
 
 Подзаголовок:
 
