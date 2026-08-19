@@ -2,8 +2,11 @@ package ru.rentcrm.app.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import ru.rentcrm.app.exception.ApiException;
 import ru.rentcrm.app.model.AppUser;
+import ru.rentcrm.app.model.ContractStatus;
 import ru.rentcrm.app.model.LeaseContract;
 import ru.rentcrm.app.model.Payment;
 import ru.rentcrm.app.model.PaymentStatus;
@@ -56,6 +59,7 @@ public class ContractService {
 
     public LeaseContract create(AppUser actor, LeaseContract input) {
         log.info("Creating lease contract started accountId={} number={}", actor.accountId, input.number);
+        validateForSave(input);
         input.id = UUID.randomUUID();
         input.accountId = actor.accountId;
         input.createdAt = Instant.now();
@@ -75,6 +79,7 @@ public class ContractService {
     public LeaseContract update(AppUser actor, UUID id, LeaseContract input) {
         log.info("Updating lease contract started accountId={} contractId={}", actor.accountId, id);
         LeaseContract item = require(actor.accountId, id);
+        validateForSave(input);
         input.id = item.id;
         input.accountId = item.accountId;
         input.createdAt = item.createdAt;
@@ -106,6 +111,42 @@ public class ContractService {
 
     private LeaseContract require(UUID accountId, UUID id) {
         return ownership.requireOwned(contracts.findById(id), accountId);
+    }
+
+    private void validateForSave(LeaseContract input) {
+        if (input.objectId == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Выберите объект");
+        }
+        if (input.tenantId == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Выберите арендатора");
+        }
+        if (input.startDate == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Укажите дату начала договора");
+        }
+        if (input.endDate == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Укажите дату окончания договора");
+        }
+        if (input.endDate.isBefore(input.startDate)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Дата окончания не может быть раньше даты начала");
+        }
+        if (input.rentAmount == null) {
+            input.rentAmount = BigDecimal.ZERO;
+        }
+        if (input.rentAmount.signum() < 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Сумма аренды не может быть отрицательной");
+        }
+        if (input.depositAmount == null) {
+            input.depositAmount = BigDecimal.ZERO;
+        }
+        if (input.depositAmount.signum() < 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Депозит не может быть отрицательным");
+        }
+        if (input.paymentDay == null || input.paymentDay < 1 || input.paymentDay > 31) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Укажите день оплаты от 1 до 31");
+        }
+        if (input.status == null) {
+            input.status = ContractStatus.ACTIVE;
+        }
     }
 
     private String nextContractNumber(UUID accountId, LocalDate contractDate) {
