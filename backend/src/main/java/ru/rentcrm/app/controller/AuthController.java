@@ -91,19 +91,22 @@ public class AuthController {
         user.email = email;
         user.fullName = req.fullName();
         user.passwordHash = encoder.encode(req.password());
-        user.emailVerified = false;
         Instant now = Instant.now();
+        user.emailVerified = true;
+        user.emailVerifiedAt = now;
         user.termsAcceptedAt = now;
         user.privacyAcceptedAt = now;
         user.notificationConsentAt = Boolean.TRUE.equals(req.notificationConsent()) ? now : null;
         user.lastPasswordChangeAt = now;
         users.save(user);
         rateLimit.reset(email, ip);
-        String verifyToken = authTokens.issue(user, AuthTokenType.EMAIL_VERIFICATION, Duration.ofDays(3));
-        String verifyLink = verificationLink(request, verifyToken);
-        emailService.sendVerification(user.email, verifyLink);
 
-        return response(user, emailService.devLinksEnabled() ? verifyLink : null);
+        // TODO: Re-enable email verification after production SMTP credentials are configured.
+        // String verifyToken = authTokens.issue(user, AuthTokenType.EMAIL_VERIFICATION, Duration.ofDays(3));
+        // String verifyLink = verificationLink(request, verifyToken);
+        // emailService.sendVerification(user.email, verifyLink);
+
+        return response(user, null);
     }
 
     @PostMapping("/login")
