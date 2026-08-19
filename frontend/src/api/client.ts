@@ -16,17 +16,32 @@ export class ApiClient {
   }
 
   async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const isAuthRequest = path.startsWith("/auth/");
+    const headers = new Headers(init.headers);
+    headers.set("Content-Type", "application/json");
+    if (this.token && !isAuthRequest) {
+      headers.set("Authorization", `Bearer ${this.token}`);
+    }
     const response = await fetch(`${API_URL}${path}`, {
       ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-        ...(init.headers ?? {})
-      }
+      headers
     });
     if (!response.ok) {
-      const body = await response.json().catch(() => ({ error: "Ошибка запроса" }));
-      throw new Error(body.error ?? "Ошибка запроса");
+      let message = "Ошибка запроса";
+      const text = await response.text().catch(() => "");
+      if (text) {
+        try {
+          const body = JSON.parse(text) as { error?: string; message?: string };
+          message = body.error ?? body.message ?? message;
+        } catch {
+          message = text;
+        }
+      }
+      if (!isAuthRequest && (response.status === 401 || response.status === 403)) {
+        this.clearToken();
+        message = "Сессия истекла, войдите заново";
+      }
+      throw new Error(message);
     }
     if (response.status === 204) return undefined as T;
     const text = await response.text();

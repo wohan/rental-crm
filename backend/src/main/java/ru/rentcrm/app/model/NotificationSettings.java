@@ -1,6 +1,7 @@
 package ru.rentcrm.app.model;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.PreUpdate;
@@ -8,6 +9,7 @@ import jakarta.persistence.Table;
 
 import java.time.Instant;
 import java.util.UUID;
+import ru.rentcrm.app.crypto.EncryptedStringConverter;
 
 @Entity
 @Table(name = "notification_settings")
@@ -30,13 +32,21 @@ public class NotificationSettings {
     @Column(nullable = false)
     public Boolean telegramEnabled = true;
 
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(columnDefinition = "text")
     public String telegramBotToken;
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(columnDefinition = "text")
     public String telegramDefaultChatId;
 
     @Column(nullable = false)
     public Boolean smsRuEnabled = false;
 
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(columnDefinition = "text")
     public String smsRuApiId;
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(columnDefinition = "text")
     public String smsRuSender;
 
     @Column(nullable = false)
@@ -45,10 +55,17 @@ public class NotificationSettings {
     @Column(nullable = false)
     public Boolean whatsappEnabled = false;
 
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(columnDefinition = "text")
     public String whatsappApiUrl;
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(columnDefinition = "text")
     public String whatsappToken;
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(columnDefinition = "text")
     public String whatsappDefaultRecipient;
 
+    @Convert(converter = EncryptedStringConverter.class)
     @Column(nullable = false, columnDefinition = "text")
     public String messageTemplate = "Здравствуйте! Напоминаем: платеж по аренде {object} на сумму {amount} ₽ должен быть внесен {dueDate}.";
 

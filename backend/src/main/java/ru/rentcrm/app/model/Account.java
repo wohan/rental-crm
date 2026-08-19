@@ -7,6 +7,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Convert;
+import ru.rentcrm.app.crypto.EncryptedStringConverter;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -17,7 +19,8 @@ public class Account {
     @Id
     public UUID id = UUID.randomUUID();
 
-    @Column(nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, columnDefinition = "text")
     public String name;
 
     @Enumerated(EnumType.STRING)

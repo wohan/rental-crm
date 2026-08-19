@@ -10,7 +10,7 @@ import type { SortState } from '../../../components/DataTable';
 import { DeleteIconButton } from '../../../components/DeleteIconButton';
 import { MaintenanceAccess } from '../../../features/maintenance/MaintenanceAccess';
 import type { EditorState, Field, Section } from '../../../shared/types';
-import { DOCUMENT_ACCEPT, MAX_DOCUMENT_FILE_SIZE, documentTypeOptions, isLongTextField, money, nextYear, status, str, today } from '../../../shared/constants';
+import { DOCUMENT_ACCEPT, MAX_DOCUMENT_FILE_SIZE, documentTypeOptions, isLongTextField, money, status, str } from '../../../shared/constants';
 
 const confirmAction = (message: string, action: () => void) => { if (window.confirm(message)) action(); };
 
@@ -70,65 +70,65 @@ export const QuickForms = observer(function QuickForms({ section }: { section: S
   const commonTenantField: Field = { key: "tenantId", label: "Арендатор", value: tenantId, type: "select", options: tenantOptions };
   const cards = [
     <CreateCard key="object" title="Объект" icon={<Home />} onSubmit={values => store.create("/objects", { title: values.title, type: values.type, address: values.address, status: "VACANT", monthlyRent: Number(values.amount), monthlyUtilityAmount: Number(values.utilityAmount || 0), depositAmount: Number(values.deposit), notes: values.notes })} fields={[
-      { key: "title", label: "Название", value: "Квартира на Ленина" },
-      { key: "type", label: "Тип", value: "APARTMENT", type: "select", options: [["APARTMENT", "Квартира"], ["COMMERCIAL", "Коммерция"], ["WAREHOUSE", "Склад"], ["STUDIO", "Студия"], ["EQUIPMENT", "Техника"]] },
-      { key: "address", label: "Адрес", value: "Томск, ул. Ленина, 10" },
-      { key: "amount", label: "Аренда, ₽", value: "45000", type: "number" },
-      { key: "utilityAmount", label: "Коммунальные, ₽/мес", value: "7000", type: "number" },
-      { key: "deposit", label: "Депозит, ₽", value: "45000", type: "number" },
+      { key: "title", label: "Название", value: "" },
+      { key: "type", label: "Тип", value: "", type: "select", options: [["APARTMENT", "Квартира"], ["COMMERCIAL", "Коммерция"], ["WAREHOUSE", "Склад"], ["STUDIO", "Студия"], ["EQUIPMENT", "Техника"]] },
+      { key: "address", label: "Адрес", value: "" },
+      { key: "amount", label: "Аренда, ₽", value: "", type: "number" },
+      { key: "utilityAmount", label: "Коммунальные, ₽/мес", value: "", type: "number" },
+      { key: "deposit", label: "Депозит, ₽", value: "", type: "number" },
       { key: "notes", label: "Заметки", value: "" }
     ]} />,
     <CreateCard key="tenant" title="Арендатор" icon={<Building2 />} onSubmit={values => store.create("/tenants", { fullName: values.fullName, phone: values.phone, email: values.email, telegramChatId: values.telegramChatId, whatsappPhone: values.whatsappPhone, notificationsEnabled: values.notificationsEnabled === "true", notes: values.notes })} fields={[
-      { key: "fullName", label: "ФИО", value: "Анна Смирнова" },
-      { key: "phone", label: "Телефон", value: "+7 900 000-00-00" },
-      { key: "email", label: "Email", value: "tenant@example.ru" },
+      { key: "fullName", label: "ФИО", value: "" },
+      { key: "phone", label: "Телефон", value: "" },
+      { key: "email", label: "Email", value: "" },
       { key: "telegramChatId", label: "Telegram chat_id", value: "" },
       { key: "whatsappPhone", label: "WhatsApp телефон", value: "" },
-      { key: "notificationsEnabled", label: "Отправлять уведомления", value: "true", type: "checkbox" },
+      { key: "notificationsEnabled", label: "Отправлять уведомления", value: "false", type: "checkbox" },
       { key: "notes", label: "Заметки", value: "" }
     ]} />,
     <ContractCreateCard key="contract" objectOptions={objectOptions} tenantOptions={tenantOptions} objectId={objectId} tenantId={tenantId} disabled={needsObject || needsTenant} />,
     <CreateCard key="payment" title="Платеж" icon={<RussianRuble />} onSubmit={values => store.create("/payments", { objectId: values.objectId, tenantId: values.tenantId || undefined, dueDate: values.dueDate, amount: Number(values.amount), paidAmount: 0, status: "PLANNED", type: values.type, comment: values.comment })} fields={[
       commonObjectField,
       { ...commonTenantField, label: "Арендатор", value: tenantId },
-      { key: "type", label: "Тип платежа", value: "RENT", type: "select", options: [["RENT", "Аренда"], ["DEPOSIT", "Депозит"], ["UTILITY", "Коммунальные"], ["OTHER", "Другое"]] },
-      { key: "dueDate", label: "Дата", value: today(), type: "date" },
-      { key: "amount", label: "Сумма, ₽", value: "45000", type: "number" },
-      { key: "comment", label: "Комментарий", value: "Аренда за месяц" }
+      { key: "type", label: "Тип платежа", value: "", type: "select", options: [["RENT", "Аренда"], ["DEPOSIT", "Депозит"], ["UTILITY", "Коммунальные"], ["OTHER", "Другое"]] },
+      { key: "dueDate", label: "Дата", value: "", type: "date" },
+      { key: "amount", label: "Сумма, ₽", value: "", type: "number" },
+      { key: "comment", label: "Комментарий", value: "" }
     ]} disabled={needsObject} disabledHint="Сначала добавьте объект." />,
     <CreateCard key="maintenance" title="Заявка" icon={<Wrench />} onSubmit={values => store.create("/maintenance", { objectId: values.objectId, tenantId: values.tenantId || undefined, title: values.title, description: values.description, priority: values.priority, status: "NEW", cost: Number(values.cost || 0), dueDate: values.dueDate || undefined })} fields={[
       commonObjectField,
       { ...commonTenantField, value: tenantId },
-      { key: "title", label: "Название", value: "Проверить смеситель" },
-      { key: "priority", label: "Приоритет", value: "MEDIUM", type: "select", options: [["LOW", "Низкий"], ["MEDIUM", "Средний"], ["HIGH", "Высокий"], ["URGENT", "Срочно"]] },
+      { key: "title", label: "Название", value: "" },
+      { key: "priority", label: "Приоритет", value: "", type: "select", options: [["LOW", "Низкий"], ["MEDIUM", "Средний"], ["HIGH", "Высокий"], ["URGENT", "Срочно"]] },
       { key: "description", label: "Описание", value: "" },
-      { key: "cost", label: "Стоимость, ₽", value: "0", type: "number" },
+      { key: "cost", label: "Стоимость, ₽", value: "", type: "number" },
       { key: "dueDate", label: "Срок", value: "", type: "date" }
     ]} disabled={needsObject} disabledHint="Сначала добавьте объект." />,
     <DocumentUploadCard key="document" objectOptions={objectOptions} tenantOptions={tenantOptions} objectId={objectId} tenantId={tenantId} disabled={needsObject} />,
     <CreateCard key="expense" title="Расход" icon={<TrendingDown />} onSubmit={values => store.create("/expenses", { objectId: values.objectId, expenseDate: values.expenseDate, category: values.category, amount: Number(values.amount), vendor: values.vendor, documentUrl: values.documentUrl, comment: values.comment })} fields={[
       commonObjectField,
-      { key: "expenseDate", label: "Дата", value: today(), type: "date" },
-      { key: "category", label: "Категория", value: "Ремонт" },
-      { key: "amount", label: "Сумма, ₽", value: "5000", type: "number" },
+      { key: "expenseDate", label: "Дата", value: "", type: "date" },
+      { key: "category", label: "Категория", value: "" },
+      { key: "amount", label: "Сумма, ₽", value: "", type: "number" },
       { key: "vendor", label: "Подрядчик", value: "" },
       { key: "documentUrl", label: "Документ", value: "" },
       { key: "comment", label: "Комментарий", value: "" }
     ]} disabled={needsObject} disabledHint="Сначала добавьте объект." />,
     <CreateCard key="listing" title="Объявление" icon={<BadgePercent />} onSubmit={values => store.create("/listings", { objectId: values.objectId, title: values.title, description: values.description, price: Number(values.price), publicUrl: values.publicUrl, published: values.published === "true" })} fields={[
       commonObjectField,
-      { key: "title", label: "Заголовок", value: "Сдается квартира" },
-      { key: "description", label: "Описание", value: "Светлая квартира рядом с центром" },
-      { key: "price", label: "Цена, ₽", value: "45000", type: "number" },
+      { key: "title", label: "Заголовок", value: "" },
+      { key: "description", label: "Описание", value: "" },
+      { key: "price", label: "Цена, ₽", value: "", type: "number" },
       { key: "publicUrl", label: "Ссылка", value: "" },
-      { key: "published", label: "Опубликовано", value: "true", type: "checkbox" }
+      { key: "published", label: "Опубликовано", value: "false", type: "checkbox" }
     ]} disabled={needsObject} disabledHint="Сначала добавьте объект." />,
     <CreateCard key="lead" title="Лид" icon={<Users />} onSubmit={values => store.create("/leads", { objectId: values.objectId, fullName: values.fullName, phone: values.phone, email: values.email, source: values.source, status: "NEW", comment: values.comment })} fields={[
       commonObjectField,
-      { key: "fullName", label: "Имя", value: "Мария Иванова" },
-      { key: "phone", label: "Телефон", value: "+7 900 111-22-33" },
+      { key: "fullName", label: "Имя", value: "" },
+      { key: "phone", label: "Телефон", value: "" },
       { key: "email", label: "Email", value: "" },
-      { key: "source", label: "Источник", value: "Авито" },
+      { key: "source", label: "Источник", value: "" },
       { key: "comment", label: "Комментарий", value: "" }
     ]} disabled={needsObject} disabledHint="Сначала добавьте объект." />
   ];
@@ -175,7 +175,10 @@ function CreateCard({ title, icon, fields, onSubmit, disabled, disabledHint }: {
     }}>
       {fields.map(field => <label key={field.key}>{field.label}
         {field.type === "select"
-          ? <select aria-label={`${title}: ${field.label}`} value={values[field.key] ?? ""} onChange={e => setValues({ ...values, [field.key]: e.target.value })}>{(field.options ?? []).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+          ? <select aria-label={`${title}: ${field.label}`} value={values[field.key] ?? ""} onChange={e => setValues({ ...values, [field.key]: e.target.value })}>
+              <option value="">Не выбрано</option>
+              {(field.options ?? []).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
           : field.type === "checkbox"
             ? <input type="checkbox" aria-label={`${title}: ${field.label}`} checked={(values[field.key] ?? field.value) === "true"} onChange={e => setValues({ ...values, [field.key]: String(e.target.checked) })} />
             : isLongTextField(field)
@@ -195,11 +198,11 @@ function ContractCreateCard({ objectOptions, tenantOptions, objectId, tenantId, 
     objectId,
     tenantId,
     number: "",
-    startDate: today(),
-    endDate: nextYear(),
-    amount: "45000",
-    paymentDay: "5",
-    deposit: "45000"
+    startDate: "",
+    endDate: "",
+    amount: "",
+    paymentDay: "",
+    deposit: ""
   });
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
@@ -207,7 +210,7 @@ function ContractCreateCard({ objectOptions, tenantOptions, objectId, tenantId, 
 
   useEffect(() => {
     if (!open) {
-      setValues({ objectId, tenantId, number: "", startDate: today(), endDate: nextYear(), amount: "45000", paymentDay: "5", deposit: "45000" });
+      setValues({ objectId, tenantId, number: "", startDate: "", endDate: "", amount: "", paymentDay: "", deposit: "" });
       setFile(null);
       setError("");
     }
@@ -271,14 +274,14 @@ function ContractCreateCard({ objectOptions, tenantOptions, objectId, tenantId, 
 
 function DocumentUploadCard({ objectOptions, tenantOptions, objectId, tenantId, disabled }: { objectOptions: Array<[string, string]>; tenantOptions: Array<[string, string]>; objectId: string; tenantId: string; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
-  const [values, setValues] = useState({ objectId, tenantId, name: "Договор аренды", type: "CONTRACT", expiresAt: "" });
+  const [values, setValues] = useState({ objectId, tenantId, name: "", type: "", expiresAt: "" });
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) {
-      setValues({ objectId, tenantId, name: "Договор аренды", type: "CONTRACT", expiresAt: "" });
+      setValues({ objectId, tenantId, name: "", type: "", expiresAt: "" });
       setFile(null);
       setError("");
     }
@@ -328,7 +331,10 @@ function DocumentUploadCard({ objectOptions, tenantOptions, objectId, tenantId, 
       </label>
       <label>Название<input aria-label="Документ: Название" value={values.name} onChange={e => setValues({ ...values, name: e.target.value })} /></label>
       <label>Тип
-        <select aria-label="Документ: Тип" value={values.type} onChange={e => setValues({ ...values, type: e.target.value })}>{documentTypeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+        <select aria-label="Документ: Тип" value={values.type} onChange={e => setValues({ ...values, type: e.target.value })}>
+          <option value="">Не выбрано</option>
+          {documentTypeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
       </label>
       <label>Файл
         <input aria-label="Документ: Файл" type="file" accept={DOCUMENT_ACCEPT} onChange={e => setFile(e.target.files?.[0] ?? null)} />

@@ -1,6 +1,7 @@
 package ru.rentcrm.app.model;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -10,6 +11,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
+import ru.rentcrm.app.crypto.EncryptedStringConverter;
 
 @Entity
 @Table(name = "documents")
@@ -24,17 +26,23 @@ public class DocumentItem {
     public UUID tenantId;
     public UUID contractId;
 
-    @Column(nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, columnDefinition = "text")
     public String name;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     public DocumentType type = DocumentType.OTHER;
 
-    @Column(nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, columnDefinition = "text")
     public String fileUrl;
 
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(columnDefinition = "text")
     public String storageKey;
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(columnDefinition = "text")
     public String originalFileName;
     public String contentType;
     public Long sizeBytes;

@@ -4,10 +4,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import ru.rentcrm.app.exception.ApiException;
 
 @Service
 public class AuthEmailService {
@@ -59,12 +61,18 @@ public class AuthEmailService {
     private void send(String to, String subject, String text) {
         if (mailHost == null || mailHost.isBlank()) {
             log.warn("SMTP host is not configured; auth email was not sent to {}. Body:\n{}", to, text);
-            return;
+            if (devLinksEnabled) {
+                return;
+            }
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "SMTP не настроен, письмо не отправлено");
         }
         JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
         if (mailSender == null) {
             log.warn("JavaMailSender is not available; auth email was not sent to {}", to);
-            return;
+            if (devLinksEnabled) {
+                return;
+            }
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Почтовый сервис недоступен");
         }
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(from);
@@ -75,6 +83,10 @@ public class AuthEmailService {
             mailSender.send(message);
         } catch (MailException ex) {
             log.error("Failed to send auth email to {}", to, ex);
+            if (devLinksEnabled) {
+                return;
+            }
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Не удалось отправить письмо");
         }
     }
 }

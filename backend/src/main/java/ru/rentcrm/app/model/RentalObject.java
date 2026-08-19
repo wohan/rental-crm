@@ -1,27 +1,33 @@
 package ru.rentcrm.app.model;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
+import ru.rentcrm.app.crypto.EncryptedStringConverter;
 
 @Entity
 @Table(name = "rental_objects")
 public class RentalObject extends AccountEntity {
-    @Column(nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, columnDefinition = "text")
     public String title;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     public ObjectType type;
 
-    @Column(nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, columnDefinition = "text")
     public String address;
 
     public BigDecimal areaSqm;
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(columnDefinition = "text")
     public String cadastralNumber;
 
     @Enumerated(EnumType.STRING)
@@ -37,6 +43,7 @@ public class RentalObject extends AccountEntity {
     @Column(nullable = false)
     public BigDecimal depositAmount = BigDecimal.ZERO;
 
+    @Convert(converter = EncryptedStringConverter.class)
     @Column(columnDefinition = "text")
     public String notes;
 }

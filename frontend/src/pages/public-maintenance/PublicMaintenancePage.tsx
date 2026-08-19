@@ -4,7 +4,7 @@ import { AutoTextarea } from '../../components/AutoTextarea';
 
 export function PublicMaintenancePage() {
   const token = new URLSearchParams(window.location.search).get("token") ?? "";
-  const [form, setForm] = useState({ title: "Заявка на ремонт", description: "", contactName: "", contactPhone: "" });
+  const [form, setForm] = useState({ title: "", description: "", contactName: "", contactPhone: "" });
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const submit = async (event: React.SyntheticEvent) => {
@@ -43,5 +43,4 @@ export function PublicMaintenancePage() {
     </section>
   </main>;
 }
-
 

@@ -1,6 +1,7 @@
 package ru.rentcrm.app.model;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -10,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
+import ru.rentcrm.app.crypto.EncryptedStringConverter;
 
 @Entity
 @Table(name = "maintenance_requests")
@@ -19,9 +21,11 @@ public class MaintenanceRequest extends AccountEntity {
 
     public UUID tenantId;
 
-    @Column(nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, columnDefinition = "text")
     public String title;
 
+    @Convert(converter = EncryptedStringConverter.class)
     @Column(columnDefinition = "text")
     public String description;
 

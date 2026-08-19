@@ -5,6 +5,56 @@ const uniqueEmail = () => `e2e-${Date.now()}-${Math.round(Math.random() * 10000)
 async function saveCard(page: Page, cardName: string) {
   const testId = `create-${cardName.toLowerCase()}`;
   await page.getByTestId(testId).click();
+  switch (cardName.toLowerCase()) {
+    case "объект":
+      await page.getByLabel("Объект: Название").fill("Квартира на Ленина");
+      await page.getByLabel("Объект: Тип").selectOption("APARTMENT");
+      await page.getByLabel("Объект: Адрес").fill("Томск, ул. Ленина, 10");
+      await page.getByLabel("Объект: Аренда, ₽").fill("45000");
+      await page.getByLabel("Объект: Коммунальные, ₽/мес").fill("7000");
+      await page.getByLabel("Объект: Депозит, ₽").fill("45000");
+      break;
+    case "арендатор":
+      await page.getByLabel("Арендатор: ФИО").fill("Анна Смирнова");
+      await page.getByLabel("Арендатор: Телефон").fill("+7 900 000-00-00");
+      await page.getByLabel("Арендатор: Email").fill("tenant@example.ru");
+      break;
+    case "договор":
+      await page.getByLabel("Договор: Начало").fill(new Date().toISOString().slice(0, 10));
+      await page.getByLabel("Договор: Окончание").fill(new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().slice(0, 10));
+      await page.getByLabel("Договор: Аренда, ₽").fill("45000");
+      await page.getByLabel("Договор: День оплаты").fill("5");
+      await page.getByLabel("Договор: Депозит, ₽").fill("45000");
+      break;
+    case "платеж":
+      await page.getByLabel("Платеж: Тип платежа").selectOption("RENT");
+      await page.getByLabel("Платеж: Дата").fill(new Date().toISOString().slice(0, 10));
+      await page.getByLabel("Платеж: Сумма, ₽").fill("45000");
+      break;
+    case "заявка":
+      await page.getByLabel("Заявка: Название").fill("Проверить смеситель");
+      await page.getByLabel("Заявка: Приоритет").selectOption("MEDIUM");
+      break;
+    case "документ":
+      await page.getByLabel("Документ: Название").fill("Договор аренды");
+      await page.getByLabel("Документ: Тип").selectOption("CONTRACT");
+      break;
+    case "расход":
+      await page.getByLabel("Расход: Дата").fill(new Date().toISOString().slice(0, 10));
+      await page.getByLabel("Расход: Категория").fill("Ремонт");
+      await page.getByLabel("Расход: Сумма, ₽").fill("5000");
+      break;
+    case "объявление":
+      await page.getByLabel("Объявление: Заголовок").fill("Сдается квартира");
+      await page.getByLabel("Объявление: Описание").fill("Светлая квартира рядом с центром");
+      await page.getByLabel("Объявление: Цена, ₽").fill("45000");
+      break;
+    case "лид":
+      await page.getByLabel("Лид: Имя").fill("Мария Иванова");
+      await page.getByLabel("Лид: Телефон").fill("+7 900 111-22-33");
+      await page.getByLabel("Лид: Источник").fill("Авито");
+      break;
+  }
   if (cardName.toLowerCase() === "документ" || cardName.toLowerCase() === "договор") {
     await page.getByLabel(cardName.toLowerCase() === "договор" ? "Договор: Файл" : "Документ: Файл").setInputFiles({
       name: "lease-test.pdf",

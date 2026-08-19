@@ -109,7 +109,13 @@ export class AppStore {
         this.auditLogs = auditLogs;
       });
     } catch (err) {
-      runInAction(() => this.error = err instanceof Error ? err.message : "Ошибка загрузки");
+      runInAction(() => {
+        this.error = err instanceof Error ? err.message : "Ошибка загрузки";
+        if (!api.token) {
+          this.token = "";
+          this.user = null;
+        }
+      });
     } finally {
       runInAction(() => this.loading = false);
     }

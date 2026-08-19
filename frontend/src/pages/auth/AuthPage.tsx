@@ -6,7 +6,7 @@ import { store } from '../../stores/appStore';
 export const AuthPage = observer(() => {
   const resetToken = new URLSearchParams(window.location.search).get("token") ?? "";
   const [mode, setMode] = useState<"login" | "register" | "forgot">(resetToken ? "forgot" : "register");
-  const [form, setForm] = useState({ email: "owner@example.ru", password: "password123", fullName: "Иван Петров", accountName: "Петров Аренда", termsAccepted: true, privacyAccepted: true, notificationConsent: true });
+  const [form, setForm] = useState({ email: "", password: "", fullName: "", accountName: "", termsAccepted: false, privacyAccepted: false, notificationConsent: false });
   const [newPassword, setNewPassword] = useState("");
   const submit = async (event?: React.SyntheticEvent) => {
     event?.preventDefault();
@@ -54,7 +54,7 @@ export const AuthPage = observer(() => {
         {store.resetLink && <p className="dev-link">Dev reset link: <a href={store.resetLink}>{store.resetLink}</a></p>}
         {store.verificationLink && <p className="dev-link">Dev verify link: <a href={store.verificationLink}>{store.verificationLink}</a></p>}
         <button className="primary" type="button" onClick={event => submit(event)} disabled={Boolean(store.actionInFlight)} data-testid="auth-submit">
-          {store.actionInFlight || (resetToken ? "Сменить пароль" : mode === "register" ? "Создать кабинет" : mode === "forgot" ? "Получить ссылку" : "Войти")}
+          {store.actionInFlight ? "Подождите..." : resetToken ? "Сменить пароль" : mode === "register" ? "Создать кабинет" : mode === "forgot" ? "Получить ссылку" : "Войти"}
         </button>
         {!resetToken && <button className="link-button" type="button" onClick={() => setMode(mode === "forgot" ? "login" : "forgot")}>
           {mode === "forgot" ? "Вернуться ко входу" : "Забыли пароль?"}
@@ -63,4 +63,3 @@ export const AuthPage = observer(() => {
     </section>
   </main>;
 });
-

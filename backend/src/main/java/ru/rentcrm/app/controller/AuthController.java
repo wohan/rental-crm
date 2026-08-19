@@ -149,6 +149,7 @@ public class AuthController {
         AppUser user = users.findById(authToken.userId)
             .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Пользователь не найден"));
         user.passwordHash = encoder.encode(req.newPassword());
+        user.lastPasswordChangeAt = Instant.now();
         users.save(user);
         return Map.of("ok", true, "message", "Пароль изменен");
     }
