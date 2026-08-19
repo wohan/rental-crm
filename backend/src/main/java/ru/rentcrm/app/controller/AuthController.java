@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -67,12 +68,15 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @Transactional
     public AuthResponse register(@Valid @RequestBody RegisterRequest req, HttpServletRequest request) {
-        rateLimit.check(req.email(), clientIp(request));
+        String email = normalizeEmail(req.email());
+        String ip = clientIp(request);
+        rateLimit.check(email, ip);
         if (!Boolean.TRUE.equals(req.termsAccepted()) || !Boolean.TRUE.equals(req.privacyAccepted())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Для регистрации нужно принять оферту и политику персональных данных");
         }
-        if (users.existsByEmail(req.email())) {
+        if (users.existsByEmail(email)) {
             throw new ApiException(HttpStatus.CONFLICT, "Email уже зарегистрирован");
         }
 
@@ -84,7 +88,7 @@ public class AuthController {
 
         AppUser user = new AppUser();
         user.accountId = account.id;
-        user.email = req.email().toLowerCase(Locale.ROOT);
+        user.email = email;
         user.fullName = req.fullName();
         user.passwordHash = encoder.encode(req.password());
         user.emailVerified = false;
@@ -94,7 +98,7 @@ public class AuthController {
         user.notificationConsentAt = Boolean.TRUE.equals(req.notificationConsent()) ? now : null;
         user.lastPasswordChangeAt = now;
         users.save(user);
-        rateLimit.reset(req.email(), clientIp(request));
+        rateLimit.reset(email, ip);
         String verifyToken = authTokens.issue(user, AuthTokenType.EMAIL_VERIFICATION, Duration.ofDays(3));
         String verifyLink = verificationLink(request, verifyToken);
         emailService.sendVerification(user.email, verifyLink);
@@ -104,17 +108,20 @@ public class AuthController {
 
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest req, HttpServletRequest request) {
-        rateLimit.check(req.email(), clientIp(request));
-        AppUser user = users.findByEmail(req.email().toLowerCase(Locale.ROOT))
+        String email = normalizeEmail(req.email());
+        String ip = clientIp(request);
+        rateLimit.check(email, ip);
+        AppUser user = users.findByEmail(email)
             .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Неверный email или пароль"));
         if (!encoder.matches(req.password(), user.passwordHash)) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Неверный email или пароль");
         }
-        rateLimit.reset(req.email(), clientIp(request));
+        rateLimit.reset(email, ip);
         return response(user, null);
     }
 
     @GetMapping("/verify-email")
+    @Transactional
     public Map<String, Object> verifyEmail(@RequestParam String token) {
         AuthToken authToken = authTokens.consume(token, AuthTokenType.EMAIL_VERIFICATION);
         AppUser user = users.findById(authToken.userId)
@@ -126,14 +133,17 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
+    @Transactional
     public Map<String, Object> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req, HttpServletRequest request) {
-        rateLimit.check(req.email(), clientIp(request));
-        return users.findByEmail(req.email().toLowerCase(Locale.ROOT))
+        String email = normalizeEmail(req.email());
+        String ip = clientIp(request);
+        rateLimit.check(email, ip);
+        return users.findByEmail(email)
             .map(user -> {
                 String token = authTokens.issue(user, AuthTokenType.PASSWORD_RESET, Duration.ofHours(2));
                 String link = resetLink(request, token);
                 emailService.sendPasswordReset(user.email, link);
-                rateLimit.reset(req.email(), clientIp(request));
+                rateLimit.reset(email, ip);
                 return Map.<String, Object>of(
                     "ok", true,
                     "message", "Если email зарегистрирован, ссылка для сброса пароля создана",
@@ -144,6 +154,7 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
+    @Transactional
     public Map<String, Object> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
         AuthToken authToken = authTokens.consume(req.token(), AuthTokenType.PASSWORD_RESET);
         AppUser user = users.findById(authToken.userId)
@@ -160,6 +171,10 @@ public class AuthController {
             return forwarded.split(",")[0].trim();
         }
         return request.getRemoteAddr();
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
     private AuthResponse response(AppUser user, String verificationLink) {
