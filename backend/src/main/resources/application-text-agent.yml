@@ -1,0 +1,15 @@
+text-agent:
+  enabled: ${TEXT_AGENT_ENABLED:true}
+  spec: classpath:agent-openapi.yaml
+  allowed-operations: [createTenant]
+  target-base-url: ${AGENT_TARGET_BASE_URL:http://127.0.0.1:8080}
+  model-endpoint: ${AGENT_MODEL_ENDPOINT:https://api.deepseek.com/chat/completions}
+  model: ${AGENT_MODEL:deepseek-flash}
+  api-key: ${AGENT_API_KEY:}
+  model-options:
+    thinking:
+      type: disabled
+    "[max_tokens]": 2048
+  confirmation-ttl: 3m
+  session-ttl: 30m
+  max-sessions: 1000

@@ -1,8 +1,11 @@
 FROM node:22-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm install
+COPY package.json package-lock.json ./
+COPY vendor ./vendor
+RUN npm ci
 COPY . .
+ARG VITE_TEXT_AGENT_ENABLED=true
+ENV VITE_TEXT_AGENT_ENABLED=${VITE_TEXT_AGENT_ENABLED}
 RUN npm run build
 
 FROM nginx:1.27-alpine

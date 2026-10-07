@@ -29,3 +29,7 @@ docker compose up -d --build
 ## Документация
 
 Подробная аналитика и SDD: [docs/SDD.md](docs/SDD.md).
+
+## Text Agent branch
+
+This branch includes the confirmation-first text assistant and a reproducible Docker build. See [deployment instructions](docs/TEXT_AGENT_DEPLOYMENT.md). Set AGENT_API_KEY only in the server .env file.
