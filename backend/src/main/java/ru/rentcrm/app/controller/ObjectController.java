@@ -38,7 +38,7 @@ public class ObjectController {
     }
 
     @PutMapping("/{id}")
-    public RentalObject update(@PathVariable UUID id, @RequestBody RentalObject item) {
+    public RentalObject update(@PathVariable UUID id, @Valid @RequestBody RentalObject item) {
         return service.update(current.get(), id, item);
     }
 

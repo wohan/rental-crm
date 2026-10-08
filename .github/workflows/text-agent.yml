@@ -1,0 +1,36 @@
+name: Text agent integration
+on: [push, pull_request]
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: agent_test
+          POSTGRES_PASSWORD: test-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      AGENT_TEST_PG_URL: jdbc:postgresql://localhost:5432/agent_test
+      AGENT_TEST_PG_USER: postgres
+      AGENT_TEST_PG_PASSWORD: test-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: mvn -B -f backend/vendor/text-agent/pom.xml install
+      - run: mvn -B -f backend/pom.xml -Ptext-agent package
+      - run: python3 scripts/test-text-agent.py
+      - run: npm ci && VITE_TEXT_AGENT_ENABLED=true npm run build
+        working-directory: frontend

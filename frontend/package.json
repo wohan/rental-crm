@@ -10,7 +10,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@text-agent/react": "file:vendor/text-agent-react-0.1.1.tgz",
+    "@text-agent/react": "file:vendor/text-agent-react-0.2.0.tgz",
     "@vitejs/plugin-react": "latest",
     "lucide-react": "latest",
     "mobx": "latest",

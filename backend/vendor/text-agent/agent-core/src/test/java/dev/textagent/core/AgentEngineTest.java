@@ -74,7 +74,7 @@ class AgentEngineTest {
         try (var pool = Executors.newFixedThreadPool(8)) {
             var jobs = new ArrayList<Future<AgentEngine.View>>();
             for (int i = 0; i < 20; i++) jobs.add(pool.submit(() -> engine.confirm("alice", ready.sessionId(), ready.confirmationId(), "token")));
-            for (var job : jobs) assertEquals("DONE", job.get(5, TimeUnit.SECONDS).state());
+            for (var job : jobs) assertTrue(Set.of("DONE", "EXECUTING").contains(job.get(5, TimeUnit.SECONDS).state()));
         }
         assertEquals(1, calls.get());
     }

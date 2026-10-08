@@ -1,5 +1,7 @@
 package ru.rentcrm.app.model;
 
+import jakarta.validation.constraints.*;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -16,9 +18,11 @@ import ru.rentcrm.app.crypto.EncryptedStringConverter;
 @Table(name = "lease_contracts")
 public class LeaseContract extends AccountEntity {
     @Column(nullable = false)
+    @NotNull
     public UUID objectId;
 
     @Column(nullable = false)
+    @NotNull
     public UUID tenantId;
 
     @Convert(converter = EncryptedStringConverter.class)
@@ -26,18 +30,23 @@ public class LeaseContract extends AccountEntity {
     public String number;
 
     @Column(nullable = false)
+    @NotNull
     public LocalDate startDate;
 
     @Column(nullable = false)
+    @NotNull
     public LocalDate endDate;
 
     @Column(nullable = false)
+    @PositiveOrZero
     public BigDecimal rentAmount = BigDecimal.ZERO;
 
     @Column(nullable = false)
+    @Min(1) @Max(31)
     public Integer paymentDay = 1;
 
     @Column(nullable = false)
+    @PositiveOrZero
     public BigDecimal depositAmount = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)

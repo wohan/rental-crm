@@ -1,5 +1,9 @@
 package ru.rentcrm.app.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import jakarta.validation.constraints.*;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -17,9 +21,11 @@ import ru.rentcrm.app.crypto.EncryptedStringConverter;
 @Table(name = "documents")
 public class DocumentItem {
     @Id
+    @Schema(accessMode=Schema.AccessMode.READ_ONLY)
     public UUID id = UUID.randomUUID();
 
     @Column(nullable = false)
+    @Schema(accessMode=Schema.AccessMode.READ_ONLY)
     public UUID accountId;
 
     public UUID objectId;
@@ -28,6 +34,7 @@ public class DocumentItem {
 
     @Convert(converter = EncryptedStringConverter.class)
     @Column(nullable = false, columnDefinition = "text")
+    @NotBlank @Size(max=200)
     public String name;
 
     @Enumerated(EnumType.STRING)
@@ -36,6 +43,7 @@ public class DocumentItem {
 
     @Convert(converter = EncryptedStringConverter.class)
     @Column(nullable = false, columnDefinition = "text")
+    @NotBlank @Size(max=2000)
     public String fileUrl;
 
     @Convert(converter = EncryptedStringConverter.class)
@@ -49,5 +57,6 @@ public class DocumentItem {
     public String scanStatus = "NOT_SCANNED";
 
     public LocalDate expiresAt;
+    @Schema(accessMode=Schema.AccessMode.READ_ONLY)
     public Instant createdAt = Instant.now();
 }

@@ -1,5 +1,7 @@
 package ru.rentcrm.app.controller;
 
+import jakarta.validation.Valid;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,12 +34,12 @@ public class ExpenseController {
     }
 
     @PostMapping
-    public Expense create(@RequestBody Expense item) {
+    public Expense create(@Valid @RequestBody Expense item) {
         return service.create(current.get(), item);
     }
 
     @PutMapping("/{id}")
-    public Expense update(@PathVariable UUID id, @RequestBody Expense item) {
+    public Expense update(@PathVariable UUID id, @Valid @RequestBody Expense item) {
         return service.update(current.get(), id, item);
     }
 

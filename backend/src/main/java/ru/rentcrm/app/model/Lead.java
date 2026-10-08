@@ -1,5 +1,7 @@
 package ru.rentcrm.app.model;
 
+import jakarta.validation.constraints.*;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -16,14 +18,17 @@ public class Lead extends AccountEntity {
 
     @Convert(converter = EncryptedStringConverter.class)
     @Column(nullable = false, columnDefinition = "text")
+    @NotBlank @Size(max=200)
     public String fullName;
 
     @Convert(converter = EncryptedStringConverter.class)
     @Column(nullable = false, columnDefinition = "text")
+    @NotBlank @Size(max=50)
     public String phone;
 
     @Convert(converter = EncryptedStringConverter.class)
     @Column(columnDefinition = "text")
+    @Email @Size(max=254)
     public String email;
     public String source;
     public String status = "NEW";

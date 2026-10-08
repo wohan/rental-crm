@@ -49,3 +49,23 @@ test('expired preview cannot execute', async () => {
   render(<AgentChat/>); await send();
   await waitFor(()=>expect((screen.getByText('Подтвердить') as HTMLButtonElement).disabled).toBe(true));
 });
+test('restores only session ID and displays backend result without another execution', async () => {
+  sessionStorage.setItem('agent:alice','s1');
+  mockFetch.mockResolvedValueOnce(reply({...ready,state:'DONE',reply:'Готово',result:{id:'new-tenant',fullName:'Мария'}}));
+  render(<AgentChat storageKey="agent:alice"/>);
+  await waitFor(()=>expect(mockFetch).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByText('Помощник'));
+  await screen.findByText('new-tenant');
+  expect(mockFetch.mock.calls[0][0]).toBe('/api/text-agent/sessions/s1');
+  expect(mockFetch.mock.calls[0][1].method).toBe('GET');
+  expect(sessionStorage.getItem('agent:alice')).toBe('s1');
+  sessionStorage.clear();
+});
+test('uncertain execution blocks further commands until user checks outcome', async () => {
+  mockFetch.mockResolvedValueOnce(reply(ready)).mockResolvedValueOnce(reply({...ready,state:'UNKNOWN',reply:'Ответ потерян'}));
+  render(<AgentChat/>);await send();fireEvent.click(screen.getByText('Подтвердить'));
+  await screen.findByText('Ответ потерян');
+  expect((screen.getByLabelText('Ваш запрос') as HTMLTextAreaElement).disabled).toBe(true);
+  fireEvent.click(screen.getByText('Я проверил результат — новый запрос'));
+  expect((screen.getByLabelText('Ваш запрос') as HTMLTextAreaElement).disabled).toBe(false);
+});

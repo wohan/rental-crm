@@ -33,14 +33,36 @@ public final class HttpExecutor implements Executor {
         var body = args.has("body") ? HttpRequest.BodyPublishers.ofString(args.get("body").toString()) : HttpRequest.BodyPublishers.noBody();
         if (args.has("body")) request.header("Content-Type", "application/json");
         try {
-            // Do not retain or send backend response bodies back to the model (they may contain secrets).
-            int status = HttpTransport.send(client, request.method(op.method(), body).build(), HttpResponse.BodyHandlers.discarding(), Duration.ofSeconds(20)).statusCode();
+            // Keep only the configured projection; never send backend response bodies to the model.
+            var response = HttpTransport.send(client, request.method(op.method(), body).build(), HttpTransport.limited(524288), Duration.ofSeconds(20));
+            int status = response.statusCode();
+            JsonNode data = null;
+            if (status >= 200 && status < 300 && !op.responseFields().isEmpty() && response.body().length > 0) {
+                try { data = project(new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.body()), op.responseFields()); }
+                catch (java.io.IOException ignored) { /* A malformed response must not make a completed write retryable. */ }
+            }
             String message = status == 202 ? "Запрос принят сервером в обработку" : status >= 200 && status < 300 ? "Операция выполнена: " + op.description()
                 : status >= 500 ? "Сервер вернул ошибку. Результат операции неизвестен; проверьте его в приложении"
                 : "Сервер отклонил запрос (HTTP " + status + "). Проверьте права и данные";
-            return new Result(status, message);
+            return new Result(status, message, data);
         } catch (InterruptedException ex) { Thread.currentThread().interrupt(); throw new AgentException(502, "Запрос прерван"); }
         catch (Exception ex) { throw new AgentException(502, "Ответ сервера не получен"); }
+    }
+    private static JsonNode project(JsonNode value, Set<String> allowed) {
+        var factory = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance;
+        if (value.isArray()) {
+            var result = factory.objectNode(); result.put("total", value.size()); var rows = result.putArray("items");
+            for (int i=0; i<Math.min(value.size(),50); i++) rows.add(project(value.get(i),allowed));
+            result.put("truncated", value.size()>50); return result;
+        }
+        var result=factory.objectNode();
+        if (value.isObject()) for (String field : allowed) {
+            JsonNode child=value.get(field);
+            if (child!=null&&child.isValueNode()) {
+                if(child.isTextual()&&child.asText().length()>2000)result.put(field,child.asText().substring(0,2000));else result.set(field,child);
+            }
+        }
+        return result;
     }
     private static String encode(String value) { return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20"); }
 }

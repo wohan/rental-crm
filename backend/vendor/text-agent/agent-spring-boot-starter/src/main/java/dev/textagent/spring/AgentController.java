@@ -14,6 +14,10 @@ public class AgentController {
     public AgentController(AgentEngine engine) { this.engine = engine; }
     public record Message(String sessionId, String message) {}
     public record Confirmation(String confirmationId) {}
+    @GetMapping("/operations")
+    public Map<String,Object> operations(HttpServletRequest request) {
+        owner(request); return Map.of("version",engine.catalogVersion(),"operations",engine.operations());
+    }
     @PostMapping("/messages")
     public AgentEngine.View message(@RequestBody Message input, HttpServletRequest request) {
         return engine.message(owner(request), input.sessionId(), input.message());

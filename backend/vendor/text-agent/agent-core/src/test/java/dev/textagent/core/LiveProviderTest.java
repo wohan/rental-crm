@@ -23,7 +23,7 @@ class LiveProviderTest {
             calls.incrementAndGet(); ex.sendResponseHeaders(200, -1); ex.close();
         }); server.start();
         try {
-            var catalog = new OpenApiCatalog(getClass().getResourceAsStream("/agent-openapi.yaml"), Set.of("createTenant"));
+            var catalog = new OpenApiCatalog(getClass().getResourceAsStream("/rental-openapi.json"), Set.of());
             var planner = new ChatCompletionPlanner(URI.create(System.getenv("AGENT_MODEL_ENDPOINT")), System.getenv("AGENT_MODEL"), System.getenv("AGENT_API_KEY"), java.util.Map.of("thinking", java.util.Map.of("type", "disabled"), "max_tokens", 2048));
             var engine = new AgentEngine(catalog, planner, new HttpExecutor(URI.create("http://127.0.0.1:" + server.getAddress().getPort())),
                 Clock.systemUTC(), Duration.ofMinutes(3), Duration.ofMinutes(30), 10);

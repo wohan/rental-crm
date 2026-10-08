@@ -1,5 +1,7 @@
 package ru.rentcrm.app.controller;
 
+import jakarta.validation.Valid;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,12 +34,12 @@ public class LeadController {
     }
 
     @PostMapping
-    public Lead create(@RequestBody Lead item) {
+    public Lead create(@Valid @RequestBody Lead item) {
         return service.create(current.get(), item);
     }
 
     @PutMapping("/{id}")
-    public Lead update(@PathVariable UUID id, @RequestBody Lead item) {
+    public Lead update(@PathVariable UUID id, @Valid @RequestBody Lead item) {
         return service.update(current.get(), id, item);
     }
 

@@ -10,6 +10,26 @@ import java.util.concurrent.atomic.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ChatCompletionPlannerTest {
+    @Test void selectsFromIndexBeforeSendingOnlyChosenSchema() throws Exception {
+        var json=new ObjectMapper();var requests=new java.util.concurrent.CopyOnWriteArrayList<JsonNode>();
+        var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
+        server.createContext("/model",ex->{
+            requests.add(json.readTree(ex.getRequestBody()));
+            var proposal=json.createObjectNode().put("operationId","op3");proposal.putObject("arguments");
+            var result=json.createObjectNode();var choice=result.putArray("choices").addObject().put("finish_reason","stop");
+            choice.putObject("message").put("content",proposal.toString());byte[] bytes=json.writeValueAsBytes(result);
+            ex.sendResponseHeaders(200,bytes.length);ex.getResponseBody().write(bytes);ex.close();
+        });server.start();
+        try {
+            var operations=new ArrayList<Operation>();
+            for(int i=0;i<12;i++)operations.add(new Operation("op"+i,"description"+i,"POST","/records",json.createObjectNode().put("type","object").put("description","schemaMarker"+i)));
+            var planner=new ChatCompletionPlanner(URI.create("http://127.0.0.1:"+server.getAddress().getPort()+"/model"),"stub",null);
+            assertEquals("op3",planner.plan(operations,json.createObjectNode(),"test").operationId());
+            assertEquals(2,requests.size());String first=requests.get(0).toString(),second=requests.get(1).toString();
+            assertTrue(first.contains("op11"));assertFalse(first.contains("schemaMarker"));
+            assertTrue(second.contains("schemaMarker3"));assertFalse(second.contains("schemaMarker2"));
+        }finally{server.stop(0);}
+    }
     @Test void textThroughModelAndConfirmationToRealHttp() throws Exception {
         var json = new ObjectMapper(); var calls = new AtomicInteger(); var requestBody = new AtomicReference<JsonNode>();
         var server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);

@@ -57,3 +57,9 @@ logging:
     ru.rentcrm.app.service: ${APP_SERVICE_LOG_LEVEL:INFO}
     ru.rentcrm.app.service.BillingService: ${APP_BILLING_LOG_LEVEL:INFO}
     ru.rentcrm.app.service.NotificationService: ${APP_NOTIFICATION_LOG_LEVEL:INFO}
+
+springdoc:
+  api-docs:
+    path: /api/openapi
+  packages-to-scan: ru.rentcrm.app.controller
+  paths-to-match: /api/**

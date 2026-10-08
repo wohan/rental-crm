@@ -1,5 +1,7 @@
 package ru.rentcrm.app.controller;
 
+import jakarta.validation.Valid;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,12 +34,12 @@ public class MaintenanceController {
     }
 
     @PostMapping
-    public MaintenanceRequest create(@RequestBody MaintenanceRequest item) {
+    public MaintenanceRequest create(@Valid @RequestBody MaintenanceRequest item) {
         return service.create(current.get(), item);
     }
 
     @PutMapping("/{id}")
-    public MaintenanceRequest update(@PathVariable UUID id, @RequestBody MaintenanceRequest item) {
+    public MaintenanceRequest update(@PathVariable UUID id, @Valid @RequestBody MaintenanceRequest item) {
         return service.update(current.get(), id, item);
     }
 

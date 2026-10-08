@@ -1,88 +1,57 @@
 package dev.textagent.core;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
+import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.node.*;
+import com.networknt.schema.*;
 import java.util.*;
-import java.util.regex.Pattern;
 
-/** Deliberately restricted OpenAPI 3.0 schema profile. Unsupported keywords fail at startup. */
+/** JSON Schema validation is delegated to NetworkNT; schemas are compiled once per operation. */
 public final class Schema {
     private Schema() {}
-    private static final Set<String> KEYS = Set.of("type", "properties", "required", "additionalProperties", "items",
-        "enum", "nullable", "minLength", "maxLength", "pattern", "minimum", "maximum", "exclusiveMinimum",
-        "exclusiveMaximum", "minItems", "maxItems", "uniqueItems", "format", "title", "description", "example", "default");
-    public static void check(JsonNode s) {
-        if (!s.isObject()) throw new IllegalArgumentException("Schema must be an object");
-        s.fieldNames().forEachRemaining(k -> { if (!KEYS.contains(k)) throw new IllegalArgumentException("Unsupported schema keyword: " + k); });
-        String type = s.path("type").asText();
-        if (!Set.of("object", "array", "string", "integer", "number", "boolean").contains(type))
-            throw new IllegalArgumentException("Explicit supported schema type required");
-        if (s.has("format") && !Set.of("date", "date-time", "uuid", "email", "int32", "int64", "float", "double").contains(s.get("format").asText()))
-            throw new IllegalArgumentException("Unsupported format: " + s.get("format"));
-        if (s.has("pattern")) Pattern.compile(s.get("pattern").asText());
-        if (type.equals("object")) {
-            if (!s.path("properties").isObject() || !s.has("additionalProperties") || !s.get("additionalProperties").isBoolean() || s.get("additionalProperties").asBoolean())
-                throw new IllegalArgumentException("Objects require properties and additionalProperties: false");
-            s.get("properties").forEach(Schema::check);
-            if (s.has("required") && !s.get("required").isArray()) throw new IllegalArgumentException("required must be an array");
-            for (JsonNode key : s.path("required")) if (!key.isTextual() || !s.get("properties").has(key.asText()))
-                throw new IllegalArgumentException("Required property not defined: " + key);
-        }
-        if (type.equals("array")) check(s.path("items"));
+    private static final JsonSchemaFactory FACTORY=JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
+    public static JsonSchema compile(JsonNode schema) {
+        SchemaValidatorsConfig config=SchemaValidatorsConfig.builder().formatAssertionsEnabled(true).build();
+        JsonSchema compiled=FACTORY.getSchema(schema,config); compiled.initializeValidators(); return compiled;
     }
-    public static List<String> validate(JsonNode schema, JsonNode value) {
-        List<String> errors = new ArrayList<>();
-        validate(schema, value, "$", errors);
-        return List.copyOf(errors);
+    public static void check(JsonNode schema) { compile(schema); }
+    public static List<String> validate(JsonNode schema,JsonNode value) { return validate(compile(schema),value); }
+    public static List<String> validate(JsonSchema compiled,JsonNode value) {
+        return compiled.validate(value).stream().map(m -> m.getMessage()).sorted().limit(40).toList();
     }
-    private static void validate(JsonNode s, JsonNode v, String p, List<String> e) {
-        if (v == null || v.isMissingNode()) { e.add(p + ": значение отсутствует"); return; }
-        if (v.isNull() && s.path("nullable").asBoolean()) return;
-        String t = s.path("type").asText();
-        boolean validType = switch (t) {
-            case "object" -> v.isObject(); case "array" -> v.isArray(); case "string" -> v.isTextual();
-            case "integer" -> v.isIntegralNumber(); case "number" -> v.isNumber(); case "boolean" -> v.isBoolean(); default -> false;
-        };
-        if (!validType) { e.add(p + ": ожидается " + t); return; }
-        if (s.has("enum")) { boolean found = false; for (JsonNode item : s.get("enum")) found |= item.equals(v); if (!found) e.add(p + ": недопустимое значение"); }
-        if (v.isObject()) {
-            for (JsonNode key : s.path("required")) if (!v.has(key.asText())) e.add(p + "." + key.asText() + ": обязательное поле");
-            v.fields().forEachRemaining(f -> {
-                JsonNode child = s.path("properties").get(f.getKey());
-                if (child == null) e.add(p + "." + f.getKey() + ": неизвестное поле");
-                else validate(child, f.getValue(), p + "." + f.getKey(), e);
-            });
+    public static JsonNode normalize(JsonNode node,boolean openApi30) {
+        if(node.isArray()){ArrayNode a=JsonNodeFactory.instance.arrayNode();node.forEach(v->a.add(normalize(v,openApi30)));return a;}
+        if(!node.isObject())return node.deepCopy();
+        ObjectNode out=JsonNodeFactory.instance.objectNode();
+        node.fields().forEachRemaining(f->{
+            String key=f.getKey();
+            if(Set.of("$id","$dynamicRef","$recursiveRef").contains(key))throw new IllegalArgumentException("Unsupported schema reference keyword: "+key);
+            if(key.equals("$ref")){
+                String ref=f.getValue().asText();
+                if(!ref.startsWith("#/components/schemas/") && !ref.startsWith("#/$defs/"))throw new IllegalArgumentException("Only local schema references supported");
+                out.put(key,ref);
+            }else if(Set.of("properties","patternProperties","$defs","dependentSchemas").contains(key)) {
+                ObjectNode schemas=out.putObject(key);
+                f.getValue().fields().forEachRemaining(entry->schemas.set(entry.getKey(),normalize(entry.getValue(),openApi30)));
+            }else if(Set.of("items","additionalProperties","unevaluatedProperties","unevaluatedItems","contains","propertyNames","not","if","then","else","allOf","anyOf","oneOf","prefixItems").contains(key)) {
+                out.set(key,normalize(f.getValue(),openApi30));
+            }else if(!Set.of("nullable","example","xml","discriminator","$schema").contains(key))out.set(key,f.getValue().deepCopy());
+        });
+        // readOnly fields must not be submitted, even if the model knows their names.
+        if(out.path("properties").isObject()){
+            Set<String> readOnly=new HashSet<>();
+            out.get("properties").fields().forEachRemaining(f->{if(f.getValue().path("readOnly").asBoolean())readOnly.add(f.getKey());});
+            readOnly.forEach(k->((ObjectNode)out.get("properties")).put(k,false));
+            if(out.path("required").isArray()){ArrayNode required=out.putArray("required");node.path("required").forEach(v->{if(!readOnly.contains(v.asText()))required.add(v);});}
         }
-        if (v.isArray()) {
-            if (s.has("minItems") && v.size() < s.get("minItems").asInt()) e.add(p + ": слишком мало элементов");
-            if (s.has("maxItems") && v.size() > s.get("maxItems").asInt()) e.add(p + ": слишком много элементов");
-            Set<JsonNode> seen = new HashSet<>();
-            for (int i = 0; i < v.size(); i++) {
-                validate(s.get("items"), v.get(i), p + "[" + i + "]", e);
-                if (s.path("uniqueItems").asBoolean() && !seen.add(v.get(i))) e.add(p + ": повторяющиеся элементы");
+        if(openApi30){
+            for(String bound:List.of("Minimum","Maximum"))if(out.path("exclusive"+bound).isBoolean()){
+                boolean exclusive=out.remove("exclusive"+bound).asBoolean();String ordinary=bound.toLowerCase(Locale.ROOT);
+                if(exclusive&&out.has(ordinary))out.set("exclusive"+bound,out.remove(ordinary));
+            }
+            if(node.path("nullable").asBoolean()&&out.has("type")){
+                JsonNode type=out.remove("type");ArrayNode types=out.putArray("type");if(type.isArray())type.forEach(types::add);else types.add(type);types.add("null");
             }
         }
-        if (v.isNumber()) {
-            if (s.has("minimum")) { int c = v.decimalValue().compareTo(s.get("minimum").decimalValue()); if (c < 0 || c == 0 && s.path("exclusiveMinimum").asBoolean()) e.add(p + ": ниже минимума"); }
-            if (s.has("maximum")) { int c = v.decimalValue().compareTo(s.get("maximum").decimalValue()); if (c > 0 || c == 0 && s.path("exclusiveMaximum").asBoolean()) e.add(p + ": выше максимума"); }
-            if (s.path("format").asText().equals("int32") && !v.canConvertToInt()) e.add(p + ": вне диапазона int32");
-            if (s.path("format").asText().equals("int64") && !v.canConvertToLong()) e.add(p + ": вне диапазона int64");
-        }
-        if (v.isTextual()) {
-            String text = v.asText(); int length = text.codePointCount(0, text.length());
-            if (s.has("minLength") && length < s.get("minLength").asInt()) e.add(p + ": слишком короткое значение");
-            if (s.has("maxLength") && length > s.get("maxLength").asInt()) e.add(p + ": слишком длинное значение");
-            if (s.has("pattern") && !Pattern.compile(s.get("pattern").asText()).matcher(text).find()) e.add(p + ": неверный формат");
-            try {
-                switch (s.path("format").asText()) {
-                    case "date" -> LocalDate.parse(text);
-                    case "date-time" -> OffsetDateTime.parse(text);
-                    case "uuid" -> { if (!UUID.fromString(text).toString().equalsIgnoreCase(text)) throw new IllegalArgumentException(); }
-                    case "email" -> { if (!text.matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")) throw new IllegalArgumentException(); }
-                    default -> { }
-                }
-            } catch (Exception ex) { e.add(p + ": неверный формат " + s.path("format").asText()); }
-        }
+        return out;
     }
 }

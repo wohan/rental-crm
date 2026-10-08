@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 
 export interface AgentView {
   sessionId: string;
-  state: 'COLLECTING_FIELDS' | 'READY_FOR_CONFIRMATION' | 'EXECUTING' | 'DONE' | 'FAILED' | 'UNKNOWN' | 'CANCELLED' | 'EXPIRED';
+  state: 'PLANNING' | 'COLLECTING_FIELDS' | 'READY_FOR_CONFIRMATION' | 'EXECUTING' | 'DONE' | 'FAILED' | 'UNKNOWN' | 'CANCELLED' | 'EXPIRED';
   reply: string;
   errors: string[];
   confirmationId: string | null;
@@ -13,17 +13,21 @@ export interface AgentView {
   path: string | null;
   arguments: Record<string, unknown> | null;
   httpStatus: number | null;
+  result?: unknown;
+  catalogVersion?: string;
 }
 export interface AgentChatProps {
   /** Example: /api/text-agent. Configure cross-origin CORS in the host app. */
   baseUrl?: string;
   getHeaders?: () => HeadersInit | Promise<HeadersInit>;
   title?: string;
+  /** Unique per authenticated user and backend. Stores only the session ID in sessionStorage. */
+  storageKey?: string;
   fieldLabels?: Record<string, string>;
   /** Remount with key={userId} when identity changes. */
   onExecuted?: (result: AgentView) => void;
 }
-export function AgentChat({ baseUrl = '/api/text-agent', getHeaders, title = 'Помощник', fieldLabels = {}, onExecuted }: AgentChatProps) {
+export function AgentChat({ baseUrl = '/api/text-agent', getHeaders, title = 'Помощник', storageKey, fieldLabels = {}, onExecuted }: AgentChatProps) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [view, setView] = useState<AgentView | null>(null);
@@ -43,6 +47,19 @@ export function AgentChat({ baseUrl = '/api/text-agent', getHeaders, title = 'П
   useEffect(() => { if (open) inputRef.current?.focus(); }, [open]);
   useEffect(() => { historyRef.current?.scrollTo?.(0, historyRef.current.scrollHeight); }, [history, view]);
   useEffect(() => { if (!open) return; const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, [open]);
+  useEffect(() => {
+    if (!storageKey) return;
+    let session: string | null = null;
+    try { session = sessionStorage.getItem(storageKey); } catch { /* Storage may be disabled. */ }
+    if (session) void run(() => request(`/sessions/${encodeURIComponent(session!)}`));
+  }, [storageKey]);
+  useEffect(() => {
+    if (!open || !view || !['EXECUTING', 'PLANNING'].includes(view.state)) return;
+    const timer = setInterval(() => { if (!lock.current) void run(() => request(`/sessions/${view.sessionId}`)); }, 5000);
+    return () => clearInterval(timer);
+  }, [open, view?.sessionId, view?.state]);
+  const waiting = view?.state === 'EXECUTING' || view?.state === 'PLANNING';
+  const blocked = busy || uncertain || waiting || view?.state === 'UNKNOWN';
   const expired = !!view?.expiresAt && now >= Date.parse(view.expiresAt);
   async function request(path: string, payload?: unknown): Promise<AgentView> {
     const headers = new Headers(await getHeaders?.());
@@ -53,7 +70,7 @@ export function AgentChat({ baseUrl = '/api/text-agent', getHeaders, title = 'П
     });
     if (!response.ok) {
       const body = await response.json().catch(() => ({})) as { message?: string };
-      throw new Error(body.message ?? `Ошибка запроса (${response.status})`);
+      throw Object.assign(new Error(body.message ?? `Ошибка запроса (${response.status})`), { status: response.status });
     }
     return await response.json() as AgentView;
   }
@@ -63,18 +80,23 @@ export function AgentChat({ baseUrl = '/api/text-agent', getHeaders, title = 'П
     try {
       const next = await action();
       if (!mounted.current) return;
+      if (storageKey) { try { sessionStorage.setItem(storageKey, next.sessionId); } catch { /* Optional persistence. */ } }
       setView(next); setUncertain(false); setNow(Date.now());
-      setHistory(h => [...h.slice(-39), { role: 'Помощник', text: next.reply }]);
+      setHistory(h => h.at(-1)?.text === next.reply ? h : [...h.slice(-39), { role: 'Помощник', text: next.reply }]);
       if (next.state === 'DONE' && next.confirmationId !== notified.current) {
         notified.current = next.confirmationId;
         try { onExecuted?.(next); } catch { /* Host refresh failures must not re-enable execution. */ }
       }
     } catch (e) {
+      if ((e as { status?: number })?.status === 404 && storageKey) {
+        try { sessionStorage.removeItem(storageKey); } catch { /* Optional persistence. */ }
+        if (mounted.current) { setView(null); setUncertain(false); }
+      }
       if (mounted.current) { setError(e instanceof Error ? e.message : 'Не удалось получить ответ'); if (mayExecute) setUncertain(true); }
     } finally { lock.current = false; if (mounted.current) setBusy(false); }
   }
   function send(e: FormEvent) {
-    e.preventDefault(); if (!input.trim() || lock.current || uncertain) return;
+    e.preventDefault(); if (!input.trim() || lock.current || blocked) return;
     const message = input.trim(); setInput('');
     setHistory(h => [...h.slice(-39), { role: 'Вы', text: message }]);
     // Hide stale confirmation immediately, including when the model request fails.
@@ -105,10 +127,15 @@ export function AgentChat({ baseUrl = '/api/text-agent', getHeaders, title = 'П
         </div>}
         {view?.state === 'COLLECTING_FIELDS' && <button disabled={busy || uncertain} onClick={() => void run(() => request(`/sessions/${view.sessionId}/cancel`, {}))}>Отменить действие</button>}
         {uncertain && <div role="alert"><p>Ответ на подтверждение не получен. Сначала проверьте состояние операции.</p><button disabled={busy} onClick={() => void run(() => request(`/sessions/${view!.sessionId}`))}>Проверить состояние</button></div>}
-        {view?.state === 'UNKNOWN' && <p role="alert">Не повторяйте операцию, пока не проверите результат в приложении.</p>}
+        {waiting && <p role="status">{view?.state === 'PLANNING' ? 'Готовлю запрос…' : 'Выполняю запрос…'} Состояние обновляется автоматически.</p>}
+        {view?.state === 'DONE' && view.result != null && <div className="ta-preview"><strong>Результат</strong>{renderValue(view.result)}</div>}
+        {view?.state === 'UNKNOWN' && <div role="alert"><p>Не повторяйте операцию, пока не проверите результат в приложении.</p><button onClick={() => {
+          setView(null); setUncertain(false);
+          if (storageKey) { try { sessionStorage.removeItem(storageKey); } catch { /* Optional persistence. */ } }
+        }}>Я проверил результат — новый запрос</button></div>}
       </div>
       {error && <p className="ta-error" role="alert">{error}</p>}
-      <form onSubmit={send}><label htmlFor={`${id}-input`}>Ваш запрос</label><textarea id={`${id}-input`} ref={inputRef} value={input} maxLength={8000} disabled={busy || uncertain} onChange={e => setInput(e.target.value)} placeholder="Что нужно сделать?" rows={2}/><button disabled={busy || uncertain || !input.trim()} type="submit">{busy ? 'Обрабатываю…' : 'Отправить'}</button></form>
+      <form onSubmit={send}><label htmlFor={`${id}-input`}>Ваш запрос</label><textarea id={`${id}-input`} ref={inputRef} value={input} maxLength={8000} disabled={blocked} onChange={e => setInput(e.target.value)} placeholder="Что нужно сделать?" rows={2}/><button disabled={blocked || !input.trim()} type="submit">{busy ? 'Обрабатываю…' : 'Отправить'}</button></form>
     </section>}
   </div>;
 }

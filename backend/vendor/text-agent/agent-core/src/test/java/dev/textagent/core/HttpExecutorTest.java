@@ -26,6 +26,19 @@ class HttpExecutorTest {
             assertEquals("AI_AGENT", marker.get()); assertEquals("confirmation", key.get()); assertEquals(0, redirects.get());
         } finally { server.stop(0); }
     }
+    @Test void onlyApprovedResponseFieldsLeaveExecutor() throws Exception {
+        var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
+        server.createContext("/rows",ex->{
+            byte[] bytes="[{\"id\":\"1\",\"name\":\"Alice\",\"secret\":\"hidden\",\"nested\":{\"token\":\"hidden\"}}]".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            ex.sendResponseHeaders(200,bytes.length);ex.getResponseBody().write(bytes);ex.close();
+        });server.start();
+        try {
+            var json=new ObjectMapper();var op=new Operation("list","List","GET","/rows",json.createObjectNode(),java.util.Set.of("id","name","nested"));
+            var result=new HttpExecutor(URI.create("http://127.0.0.1:"+server.getAddress().getPort())).execute(op,json.createObjectNode(),"Bearer user","test");
+            assertEquals(1,result.data().path("total").asInt());assertEquals("Alice",result.data().path("items").get(0).path("name").asText());
+            assertFalse(result.data().toString().contains("hidden"));assertFalse(result.data().path("items").get(0).has("nested"));
+        }finally{server.stop(0);}
+    }
     @Test void blocksPathTraversalBeforeNetworkCall() throws Exception {
         var json = new ObjectMapper(); var executor = new HttpExecutor(URI.create("http://127.0.0.1:1"));
         var op = new Operation("update", "Update", "PUT", "/api/tenants/{id}", json.createObjectNode());

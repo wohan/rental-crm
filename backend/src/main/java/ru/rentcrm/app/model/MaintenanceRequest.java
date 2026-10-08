@@ -1,5 +1,7 @@
 package ru.rentcrm.app.model;
 
+import jakarta.validation.constraints.*;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -17,12 +19,14 @@ import ru.rentcrm.app.crypto.EncryptedStringConverter;
 @Table(name = "maintenance_requests")
 public class MaintenanceRequest extends AccountEntity {
     @Column(nullable = false)
+    @NotNull
     public UUID objectId;
 
     public UUID tenantId;
 
     @Convert(converter = EncryptedStringConverter.class)
     @Column(nullable = false, columnDefinition = "text")
+    @NotBlank @Size(max=200)
     public String title;
 
     @Convert(converter = EncryptedStringConverter.class)
@@ -38,6 +42,7 @@ public class MaintenanceRequest extends AccountEntity {
     public MaintenanceStatus status = MaintenanceStatus.NEW;
 
     @Column(nullable = false)
+    @PositiveOrZero
     public BigDecimal cost = BigDecimal.ZERO;
 
     public LocalDate dueDate;

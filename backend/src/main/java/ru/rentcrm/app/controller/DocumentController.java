@@ -1,5 +1,7 @@
 package ru.rentcrm.app.controller;
 
+import jakarta.validation.Valid;
+
 import org.springframework.core.io.Resource;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ContentDisposition;
@@ -43,7 +45,7 @@ public class DocumentController {
     }
 
     @PostMapping
-    public DocumentItem create(@RequestBody DocumentItem item) {
+    public DocumentItem create(@Valid @RequestBody DocumentItem item) {
         return service.create(current.get(), item);
     }
 
@@ -61,7 +63,7 @@ public class DocumentController {
     }
 
     @PutMapping("/{id}")
-    public DocumentItem update(@PathVariable UUID id, @RequestBody DocumentItem item) {
+    public DocumentItem update(@PathVariable UUID id, @Valid @RequestBody DocumentItem item) {
         return service.update(current.get(), id, item);
     }
 

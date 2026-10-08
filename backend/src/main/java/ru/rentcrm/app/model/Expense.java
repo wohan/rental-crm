@@ -1,5 +1,7 @@
 package ru.rentcrm.app.model;
 
+import jakarta.validation.constraints.*;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -14,15 +16,19 @@ import ru.rentcrm.app.crypto.EncryptedStringConverter;
 @Table(name = "expenses")
 public class Expense extends AccountEntity {
     @Column(nullable = false)
+    @NotNull
     public UUID objectId;
 
     @Column(nullable = false)
+    @NotNull
     public LocalDate expenseDate;
 
     @Column(nullable = false)
+    @NotBlank @Size(max=200)
     public String category;
 
     @Column(nullable = false)
+    @PositiveOrZero
     public BigDecimal amount = BigDecimal.ZERO;
 
     @Convert(converter = EncryptedStringConverter.class)
