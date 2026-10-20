@@ -1,7 +1,8 @@
 package ru.rentcrm.app.controller;
 
 import jakarta.validation.Valid;
-
+import java.util.List;
+import java.util.UUID;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,37 +15,34 @@ import ru.rentcrm.app.model.Lead;
 import ru.rentcrm.app.security.CurrentUser;
 import ru.rentcrm.app.service.LeadService;
 
-import java.util.List;
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/leads")
 public class LeadController {
-    private final CurrentUser current;
-    private final LeadService service;
+  private final CurrentUser current;
+  private final LeadService service;
 
-    public LeadController(CurrentUser current, LeadService service) {
-        this.current = current;
-        this.service = service;
-    }
+  public LeadController(CurrentUser current, LeadService service) {
+    this.current = current;
+    this.service = service;
+  }
 
-    @GetMapping
-    public List<Lead> list() {
-        return service.list(current.accountId());
-    }
+  @GetMapping
+  public List<Lead> list() {
+    return service.list(current.accountId());
+  }
 
-    @PostMapping
-    public Lead create(@Valid @RequestBody Lead item) {
-        return service.create(current.get(), item);
-    }
+  @PostMapping
+  public Lead create(@Valid @RequestBody Lead item) {
+    return service.create(current.get(), item);
+  }
 
-    @PutMapping("/{id}")
-    public Lead update(@PathVariable UUID id, @Valid @RequestBody Lead item) {
-        return service.update(current.get(), id, item);
-    }
+  @PutMapping("/{id}")
+  public Lead update(@PathVariable UUID id, @Valid @RequestBody Lead item) {
+    return service.update(current.get(), id, item);
+  }
 
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable UUID id) {
-        service.delete(current.get(), id);
-    }
+  @DeleteMapping("/{id}")
+  public void delete(@PathVariable UUID id) {
+    service.delete(current.get(), id);
+  }
 }

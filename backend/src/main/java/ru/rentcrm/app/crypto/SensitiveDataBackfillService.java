@@ -1,5 +1,7 @@
 package ru.rentcrm.app.crypto;
 
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -8,23 +10,21 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-
 @Component
 public class SensitiveDataBackfillService {
-    private static final Logger log = LoggerFactory.getLogger(SensitiveDataBackfillService.class);
+  private static final Logger log = LoggerFactory.getLogger(SensitiveDataBackfillService.class);
 
-    private final JdbcTemplate jdbc;
+  private final JdbcTemplate jdbc;
 
-    public SensitiveDataBackfillService(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
-    }
+  public SensitiveDataBackfillService(JdbcTemplate jdbc) {
+    this.jdbc = jdbc;
+  }
 
-    @EventListener(ApplicationReadyEvent.class)
-    @Transactional
-    public void encryptExistingPlaintext() {
-        List<TableColumn> columns = List.of(
+  @EventListener(ApplicationReadyEvent.class)
+  @Transactional
+  public void encryptExistingPlaintext() {
+    List<TableColumn> columns =
+        List.of(
             new TableColumn("accounts", "name"),
             new TableColumn("users", "full_name"),
             new TableColumn("rental_objects", "title"),
@@ -73,33 +73,40 @@ public class SensitiveDataBackfillService {
             new TableColumn("notification_settings", "whatsapp_default_recipient"),
             new TableColumn("notification_settings", "message_template"),
             new TableColumn("notification_deliveries", "recipient"),
-            new TableColumn("notification_deliveries", "response")
-        );
+            new TableColumn("notification_deliveries", "response"));
 
-        int encrypted = 0;
-        for (TableColumn column : columns) {
-            encrypted += encryptColumn(column);
-        }
-        if (encrypted > 0) {
-            log.info("Encrypted {} existing sensitive field values", encrypted);
-        }
+    int encrypted = 0;
+    for (TableColumn column : columns) {
+      encrypted += encryptColumn(column);
     }
+    if (encrypted > 0) {
+      log.info("Encrypted {} existing sensitive field values", encrypted);
+    }
+  }
 
-    private int encryptColumn(TableColumn column) {
-        String sql = "select id, " + column.name + " from " + column.table
-            + " where " + column.name + " is not null and " + column.name + " <> '' and " + column.name + " not like 'enc:v1:%'";
-        List<Map<String, Object>> rows = jdbc.queryForList(sql);
-        for (Map<String, Object> row : rows) {
-            String plaintext = String.valueOf(row.get(column.name));
-            jdbc.update(
-                "update " + column.table + " set " + column.name + " = ? where id = ?",
-                FieldEncryption.encrypt(plaintext),
-                row.get("id")
-            );
-        }
-        return rows.size();
+  private int encryptColumn(TableColumn column) {
+    String sql =
+        "select id, "
+            + column.name
+            + " from "
+            + column.table
+            + " where "
+            + column.name
+            + " is not null and "
+            + column.name
+            + " <> '' and "
+            + column.name
+            + " not like 'enc:v1:%'";
+    List<Map<String, Object>> rows = jdbc.queryForList(sql);
+    for (Map<String, Object> row : rows) {
+      String plaintext = String.valueOf(row.get(column.name));
+      jdbc.update(
+          "update " + column.table + " set " + column.name + " = ? where id = ?",
+          FieldEncryption.encrypt(plaintext),
+          row.get("id"));
     }
+    return rows.size();
+  }
 
-    private record TableColumn(String table, String name) {
-    }
+  private record TableColumn(String table, String name) {}
 }

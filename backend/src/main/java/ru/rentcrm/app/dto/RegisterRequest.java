@@ -11,6 +11,4 @@ public record RegisterRequest(
     @NotBlank String accountName,
     Boolean termsAccepted,
     Boolean privacyAccepted,
-    Boolean notificationConsent
-) {
-}
+    Boolean notificationConsent) {}

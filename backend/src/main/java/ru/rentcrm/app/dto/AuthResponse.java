@@ -8,6 +8,4 @@ public record AuthResponse(
     String fullName,
     String role,
     Boolean emailVerified,
-    String verificationLink
-) {
-}
+    String verificationLink) {}

@@ -1,12 +1,44 @@
-import { makeAutoObservable, runInAction } from "mobx";
-import { api, Id } from "../api/client";
-import { AuthStore } from "./modules/AuthStore";
-import { BillingStore } from "./modules/BillingStore";
-import { CrudStore } from "./modules/CrudStore";
-import { DocumentStore } from "./modules/DocumentStore";
-import { NotificationStore } from "./modules/NotificationStore";
-import type { AuditLog, BillingInvoice, BillingSettings, Contract, Dashboard, DocumentItem, Expense, Lead, Listing, Maintenance, NotificationDelivery, NotificationSettings, Payment, RentalObject, Tenant } from "./types";
-export type { AuditLog, BillingInvoice, BillingSettings, Contract, Dashboard, DocumentItem, Expense, Lead, Listing, Maintenance, NotificationDelivery, NotificationSettings, Payment, RentalObject, Tenant } from "./types";
+import {makeAutoObservable, runInAction} from 'mobx';
+import {api, Id} from '../api/client';
+import {AuthStore} from './modules/AuthStore';
+import {BillingStore} from './modules/BillingStore';
+import {CrudStore} from './modules/CrudStore';
+import {DocumentStore} from './modules/DocumentStore';
+import {NotificationStore} from './modules/NotificationStore';
+import type {
+  AuditLog,
+  BillingInvoice,
+  BillingSettings,
+  Contract,
+  Dashboard,
+  DocumentItem,
+  Expense,
+  Lead,
+  Listing,
+  Maintenance,
+  NotificationDelivery,
+  NotificationSettings,
+  Payment,
+  RentalObject,
+  Tenant,
+} from './types';
+export type {
+  AuditLog,
+  BillingInvoice,
+  BillingSettings,
+  Contract,
+  Dashboard,
+  DocumentItem,
+  Expense,
+  Lead,
+  Listing,
+  Maintenance,
+  NotificationDelivery,
+  NotificationSettings,
+  Payment,
+  RentalObject,
+  Tenant,
+} from './types';
 
 export class AppStore {
   authStore = new AuthStore(this);
@@ -16,13 +48,19 @@ export class AppStore {
   billingStore = new BillingStore(this);
 
   loading = false;
-  actionInFlight = "";
-  notice = "";
-  error = "";
-  verificationLink = "";
-  resetLink = "";
+  actionInFlight = '';
+  notice = '';
+  error = '';
+  verificationLink = '';
+  resetLink = '';
   token = api.token;
-  user: null | { email: string; fullName: string; role: string; emailVerified: boolean; account: { name: string; tariff: string; objectsLimit: number } } = null;
+  user: null | {
+    email: string;
+    fullName: string;
+    role: string;
+    emailVerified: boolean;
+    account: {name: string; tariff: string; objectsLimit: number};
+  } = null;
   dashboard: Dashboard | null = null;
   objects: RentalObject[] = [];
   tenants: Tenant[] = [];
@@ -47,11 +85,19 @@ export class AppStore {
     return Boolean(this.token);
   }
 
-  register(payload: { email: string; password: string; fullName: string; accountName: string; termsAccepted?: boolean; privacyAccepted?: boolean; notificationConsent?: boolean }) {
+  register(payload: {
+    email: string;
+    password: string;
+    fullName: string;
+    accountName: string;
+    termsAccepted?: boolean;
+    privacyAccepted?: boolean;
+    notificationConsent?: boolean;
+  }) {
     return this.authStore.register(payload);
   }
 
-  login(payload: { email: string; password: string }) {
+  login(payload: {email: string; password: string}) {
     return this.authStore.login(payload);
   }
 
@@ -70,25 +116,42 @@ export class AppStore {
   async loadAll() {
     if (!api.token) return;
     this.loading = true;
-    this.error = "";
+    this.error = '';
     try {
-      const [user, dashboard, objects, tenants, contracts, payments, maintenance, documents, notificationSettings, notificationDeliveries, expenses, listings, leads, billingSettings, billingInvoices, auditLogs] = await Promise.all([
-        api.get<AppStore["user"]>("/me"),
-        api.get<Dashboard>("/dashboard"),
-        api.get<RentalObject[]>("/objects"),
-        api.get<Tenant[]>("/tenants"),
-        api.get<Contract[]>("/contracts"),
-        api.get<Payment[]>("/payments"),
-        api.get<Maintenance[]>("/maintenance"),
-        api.get<DocumentItem[]>("/documents"),
-        api.get<NotificationSettings>("/notifications/settings"),
-        api.get<NotificationDelivery[]>("/notifications/deliveries"),
-        api.get<Expense[]>("/expenses"),
-        api.get<Listing[]>("/listings"),
-        api.get<Lead[]>("/leads"),
-        api.get<BillingSettings>("/billing/settings"),
-        api.get<BillingInvoice[]>("/billing/invoices"),
-        api.get<AuditLog[]>("/audit")
+      const [
+        user,
+        dashboard,
+        objects,
+        tenants,
+        contracts,
+        payments,
+        maintenance,
+        documents,
+        notificationSettings,
+        notificationDeliveries,
+        expenses,
+        listings,
+        leads,
+        billingSettings,
+        billingInvoices,
+        auditLogs,
+      ] = await Promise.all([
+        api.get<AppStore['user']>('/me'),
+        api.get<Dashboard>('/dashboard'),
+        api.get<RentalObject[]>('/objects'),
+        api.get<Tenant[]>('/tenants'),
+        api.get<Contract[]>('/contracts'),
+        api.get<Payment[]>('/payments'),
+        api.get<Maintenance[]>('/maintenance'),
+        api.get<DocumentItem[]>('/documents'),
+        api.get<NotificationSettings>('/notifications/settings'),
+        api.get<NotificationDelivery[]>('/notifications/deliveries'),
+        api.get<Expense[]>('/expenses'),
+        api.get<Listing[]>('/listings'),
+        api.get<Lead[]>('/leads'),
+        api.get<BillingSettings>('/billing/settings'),
+        api.get<BillingInvoice[]>('/billing/invoices'),
+        api.get<AuditLog[]>('/audit'),
       ]);
       runInAction(() => {
         this.user = user;
@@ -110,14 +173,14 @@ export class AppStore {
       });
     } catch (err) {
       runInAction(() => {
-        this.error = err instanceof Error ? err.message : "Ошибка загрузки";
+        this.error = err instanceof Error ? err.message : 'Ошибка загрузки';
         if (!api.token) {
-          this.token = "";
+          this.token = '';
           this.user = null;
         }
       });
     } finally {
-      runInAction(() => this.loading = false);
+      runInAction(() => (this.loading = false));
     }
   }
 
@@ -129,7 +192,7 @@ export class AppStore {
     return this.crudStore.createContract(payload, file);
   }
 
-  update(path: string, payload: unknown, success = "Изменения сохранены") {
+  update(path: string, payload: unknown, success = 'Изменения сохранены') {
     return this.crudStore.update(path, payload, success);
   }
 
@@ -174,23 +237,26 @@ export class AppStore {
   }
 
   async refresh() {
-    await this.runAction("Обновляем", "Данные обновлены", async () => {
+    await this.runAction('Обновляем', 'Данные обновлены', async () => {
       await this.loadAll();
     });
   }
 
   async runAction(label: string, success: string, action: () => Promise<void>) {
     this.actionInFlight = label;
-    this.notice = "";
-    this.error = "";
+    this.notice = '';
+    this.error = '';
     try {
       await action();
-      runInAction(() => this.notice = success);
+      runInAction(() => (this.notice = success));
     } catch (err) {
-      runInAction(() => this.error = err instanceof Error ? err.message : "Ошибка действия");
+      runInAction(
+        () =>
+          (this.error = err instanceof Error ? err.message : 'Ошибка действия'),
+      );
       throw err;
     } finally {
-      runInAction(() => this.actionInFlight = "");
+      runInAction(() => (this.actionInFlight = ''));
     }
   }
 }

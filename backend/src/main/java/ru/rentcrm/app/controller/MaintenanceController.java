@@ -1,7 +1,8 @@
 package ru.rentcrm.app.controller;
 
 import jakarta.validation.Valid;
-
+import java.util.List;
+import java.util.UUID;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,37 +15,35 @@ import ru.rentcrm.app.model.MaintenanceRequest;
 import ru.rentcrm.app.security.CurrentUser;
 import ru.rentcrm.app.service.MaintenanceRequestService;
 
-import java.util.List;
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/maintenance")
 public class MaintenanceController {
-    private final CurrentUser current;
-    private final MaintenanceRequestService service;
+  private final CurrentUser current;
+  private final MaintenanceRequestService service;
 
-    public MaintenanceController(CurrentUser current, MaintenanceRequestService service) {
-        this.current = current;
-        this.service = service;
-    }
+  public MaintenanceController(CurrentUser current, MaintenanceRequestService service) {
+    this.current = current;
+    this.service = service;
+  }
 
-    @GetMapping
-    public List<MaintenanceRequest> list() {
-        return service.list(current.accountId());
-    }
+  @GetMapping
+  public List<MaintenanceRequest> list() {
+    return service.list(current.accountId());
+  }
 
-    @PostMapping
-    public MaintenanceRequest create(@Valid @RequestBody MaintenanceRequest item) {
-        return service.create(current.get(), item);
-    }
+  @PostMapping
+  public MaintenanceRequest create(@Valid @RequestBody MaintenanceRequest item) {
+    return service.create(current.get(), item);
+  }
 
-    @PutMapping("/{id}")
-    public MaintenanceRequest update(@PathVariable UUID id, @Valid @RequestBody MaintenanceRequest item) {
-        return service.update(current.get(), id, item);
-    }
+  @PutMapping("/{id}")
+  public MaintenanceRequest update(
+      @PathVariable UUID id, @Valid @RequestBody MaintenanceRequest item) {
+    return service.update(current.get(), id, item);
+  }
 
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable UUID id) {
-        service.delete(current.get(), id);
-    }
+  @DeleteMapping("/{id}")
+  public void delete(@PathVariable UUID id) {
+    service.delete(current.get(), id);
+  }
 }

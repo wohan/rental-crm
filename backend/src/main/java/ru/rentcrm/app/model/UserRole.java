@@ -1,9 +1,9 @@
 package ru.rentcrm.app.model;
 
 public enum UserRole {
-    ADMIN,
-    OWNER,
-    MANAGER,
-    ACCOUNTANT,
-    TECHNICIAN
+  ADMIN,
+  OWNER,
+  MANAGER,
+  ACCOUNTANT,
+  TECHNICIAN
 }

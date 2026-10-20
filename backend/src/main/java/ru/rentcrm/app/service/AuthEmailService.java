@@ -13,80 +13,88 @@ import ru.rentcrm.app.exception.ApiException;
 
 @Service
 public class AuthEmailService {
-    private static final Logger log = LoggerFactory.getLogger(AuthEmailService.class);
+  private static final Logger log = LoggerFactory.getLogger(AuthEmailService.class);
 
-    private final ObjectProvider<JavaMailSender> mailSenderProvider;
-    private final boolean devLinksEnabled;
-    private final String from;
-    private final String mailHost;
+  private final ObjectProvider<JavaMailSender> mailSenderProvider;
+  private final boolean devLinksEnabled;
+  private final String from;
+  private final String mailHost;
 
-    public AuthEmailService(
-        ObjectProvider<JavaMailSender> mailSenderProvider,
-        @Value("${app.auth.dev-links-enabled:false}") boolean devLinksEnabled,
-        @Value("${app.mail.from:noreply@rentcrm.local}") String from,
-        @Value("${spring.mail.host:}") String mailHost
-    ) {
-        this.mailSenderProvider = mailSenderProvider;
-        this.devLinksEnabled = devLinksEnabled;
-        this.from = from;
-        this.mailHost = mailHost;
+  public AuthEmailService(
+      ObjectProvider<JavaMailSender> mailSenderProvider,
+      @Value("${app.auth.dev-links-enabled:false}") boolean devLinksEnabled,
+      @Value("${app.mail.from:noreply@rentcrm.local}") String from,
+      @Value("${spring.mail.host:}") String mailHost) {
+    this.mailSenderProvider = mailSenderProvider;
+    this.devLinksEnabled = devLinksEnabled;
+    this.from = from;
+    this.mailHost = mailHost;
+  }
+
+  public boolean devLinksEnabled() {
+    return devLinksEnabled;
+  }
+
+  public void sendVerification(String email, String link) {
+    send(
+        email,
+        "Подтвердите email в RentCRM",
+        """
+        Здравствуйте!
+
+        Для подтверждения email в RentCRM перейдите по ссылке:
+        %s
+
+        Если вы не создавали кабинет RentCRM, просто проигнорируйте это письмо.
+        """
+            .formatted(link));
+  }
+
+  public void sendPasswordReset(String email, String link) {
+    send(
+        email,
+        "Сброс пароля RentCRM",
+        """
+        Здравствуйте!
+
+        Для смены пароля в RentCRM перейдите по ссылке:
+        %s
+
+        Ссылка действует ограниченное время. Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо.
+        """
+            .formatted(link));
+  }
+
+  private void send(String to, String subject, String text) {
+    if (mailHost == null || mailHost.isBlank()) {
+      log.warn("SMTP host is not configured; auth email was not sent to {}. Body:\n{}", to, text);
+      if (devLinksEnabled) {
+        return;
+      }
+      throw new ApiException(
+          HttpStatus.SERVICE_UNAVAILABLE, "SMTP не настроен, письмо не отправлено");
     }
-
-    public boolean devLinksEnabled() {
-        return devLinksEnabled;
+    JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
+    if (mailSender == null) {
+      log.warn("JavaMailSender is not available; auth email was not sent to {}", to);
+      if (devLinksEnabled) {
+        return;
+      }
+      throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Почтовый сервис недоступен");
     }
-
-    public void sendVerification(String email, String link) {
-        send(email, "Подтвердите email в RentCRM", """
-            Здравствуйте!
-
-            Для подтверждения email в RentCRM перейдите по ссылке:
-            %s
-
-            Если вы не создавали кабинет RentCRM, просто проигнорируйте это письмо.
-            """.formatted(link));
+    SimpleMailMessage message = new SimpleMailMessage();
+    message.setFrom(from);
+    message.setTo(to);
+    message.setSubject(subject);
+    message.setText(text);
+    try {
+      mailSender.send(message);
+    } catch (MailException ex) {
+      log.error("Failed to send auth email to {}", to, ex);
+      if (devLinksEnabled) {
+        return;
+      }
+      throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Не удалось отправить письмо");
     }
-
-    public void sendPasswordReset(String email, String link) {
-        send(email, "Сброс пароля RentCRM", """
-            Здравствуйте!
-
-            Для смены пароля в RentCRM перейдите по ссылке:
-            %s
-
-            Ссылка действует ограниченное время. Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо.
-            """.formatted(link));
-    }
-
-    private void send(String to, String subject, String text) {
-        if (mailHost == null || mailHost.isBlank()) {
-            log.warn("SMTP host is not configured; auth email was not sent to {}. Body:\n{}", to, text);
-            if (devLinksEnabled) {
-                return;
-            }
-            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "SMTP не настроен, письмо не отправлено");
-        }
-        JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
-        if (mailSender == null) {
-            log.warn("JavaMailSender is not available; auth email was not sent to {}", to);
-            if (devLinksEnabled) {
-                return;
-            }
-            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Почтовый сервис недоступен");
-        }
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(from);
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(text);
-        try {
-            mailSender.send(message);
-        } catch (MailException ex) {
-            log.error("Failed to send auth email to {}", to, ex);
-            if (devLinksEnabled) {
-                return;
-            }
-            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Не удалось отправить письмо");
-        }
-    }
+  }
 }
